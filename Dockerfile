@@ -1,8 +1,14 @@
-FROM wurstmeister/base
+FROM jwiii/arm-java:8
 
-MAINTAINER Wurstmeister
+MAINTAINER jw3
 
 ENV ZOOKEEPER_VERSION 3.4.6
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends unzip wget supervisor openssh-server ca-certificates \
+ && apt-get clean \
+ && rm -rf /tmp/* \
+ && rm -rf /var/lib/apt/lists/*
 
 #Download Zookeeper
 RUN wget -q http://mirror.vorboss.net/apache/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-${ZOOKEEPER_VERSION}.tar.gz && \
@@ -21,7 +27,6 @@ RUN tar -xzf zookeeper-${ZOOKEEPER_VERSION}.tar.gz -C /opt
 #Configure
 RUN mv /opt/zookeeper-${ZOOKEEPER_VERSION}/conf/zoo_sample.cfg /opt/zookeeper-${ZOOKEEPER_VERSION}/conf/zoo.cfg
 
-ENV JAVA_HOME /usr/lib/jvm/java-7-openjdk-amd64
 ENV ZK_HOME /opt/zookeeper-${ZOOKEEPER_VERSION}
 RUN sed  -i "s|/tmp/zookeeper|$ZK_HOME/data|g" $ZK_HOME/conf/zoo.cfg; mkdir $ZK_HOME/data
 
@@ -30,5 +35,9 @@ EXPOSE 2181 2888 3888
 
 WORKDIR /opt/zookeeper-${ZOOKEEPER_VERSION}
 VOLUME ["/opt/zookeeper-${ZOOKEEPER_VERSION}/conf", "/opt/zookeeper-${ZOOKEEPER_VERSION}/data"]
+
+RUN echo 'root:wurstmeister' | chpasswd
+RUN mkdir /var/run/sshd
+RUN sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 CMD /usr/sbin/sshd && bash /usr/bin/start-zk.sh
